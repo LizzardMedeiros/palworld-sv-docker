@@ -15,7 +15,9 @@ RUN echo steam steam/question select "I AGREE" | debconf-set-selections
 RUN echo steam steam/license note '' | debconf-set-selections 
 
 # Installing SteamCMD  
-RUN mkdir steamcmd && mkdir game_files && apt-get install -y --no-install-recommends steamcmd 
+RUN mkdir steamcmd && \
+    mkdir game_files && \
+    apt-get install -y --no-install-recommends steamcmd xdg-user-dirs
 
 # Create symlink for executable in /bin
 RUN ln -s /usr/games/steamcmd /usr/bin/steamcmd && \
@@ -26,14 +28,19 @@ RUN useradd -m steam
 USER steam
 
 # Ajust user ENV
-COPY .bashrc /home/steam/.bashrc
+ENV PATH="/usr/games/:$PATH"
 
 RUN steamcmd +force_install_dir '/home/steam/Steam/steamapps/common/steamworks' +login anonymous +app_update 1007 +quit && \
     mkdir -p /home/steam/.steam/sdk64 && \
     cp '/home/steam/Steam/steamapps/common/steamworks/linux64/steamclient.so' /home/steam/.steam/sdk64/
 
 # Install palserver
-Run steamcmd +force_install_dir '/home/steam/Steam/steamapps/common/PalServer' +login anonymous +app_update 2394010 validate +quit
+RUN steamcmd +force_install_dir '/home/steam/Steam/steamapps/common/PalServer' +login anonymous +app_update 2394010 validate +quit
+
+COPY .bashrc /home/steam/.bashrc
+COPY config.ini /home/steam/Steam/steamapps/common/PalServer/DefaultPalWorldSettings.ini
+
+EXPOSE 8211
 
 # Set our shell script as entrypoint for our container
 ENTRYPOINT ["/home/steam/Steam/steamapps/common/PalServer/PalServer.sh"]
